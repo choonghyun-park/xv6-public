@@ -88,6 +88,7 @@ allocproc(void)
 found:
   p->state = EMBRYO;
   p->pid = nextpid++;
+  p->value = 20; //Default priority value of process is 20
 
   release(&ptable.lock);
 
@@ -152,6 +153,99 @@ userinit(void)
 
   release(&ptable.lock);
 }
+
+// Own System Calls
+int
+getpname(int pid)
+{
+  struct proc *p;
+
+  acquire(&ptable.lock);
+  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+    if(p->pid == pid){
+        cprintf("%s\n", p->name);
+        release(&ptable.lock);
+        return 0;
+    }
+  }
+  release(&ptable.lock);
+  return -1;
+}
+
+int
+getnice(int pid)
+{
+  struct proc *p;
+  acquire(&ptable.lock);
+  for(p=ptable.proc; p<&ptable.proc[NPROC];p++){
+    if(p->pid == pid){
+      release(&ptable.lock);
+      return p->value;
+    }
+  }
+  release(&ptable.lock);
+  return -1;
+}
+
+int
+setnice(int pid, int value)
+{
+  struct proc *p;
+  acquire(&ptable.lock);
+  for(p=ptable.proc; p<&ptable.proc[NPROC];p++){
+    if(p->pid == pid){
+      p->value = value;
+      release(&ptable.lock);
+      return 0;
+    }
+  }
+  release(&ptable.lock);
+  return -1;
+}
+
+void
+ps(int pid)
+{
+  struct proc *p;
+  //Enables interrupts on this processor.
+  sti();
+
+  acquire(&ptable.lock);
+  cprintf("name \t pid \t state \t priority \n");
+  if (pid == 0){
+    for(p=ptable.proc; p<&ptable.proc[NPROC]; p++){
+      if(p->state == SLEEPING){
+        cprintf("%s \t %d \t SLEEPING \t %d \n",p->name,p->pid,p->value);
+      }
+      else if(p->state == RUNNING){
+        cprintf("%s \t %d \t RUNNING \t %d \n",p->name,p->pid,p->value);
+      }
+      else if(p->state == RUNNABLE){
+        cprintf("%s \t %d \t RUNNABLE \t %d \n",p->name,p->pid,p->value);
+      }
+    }
+    release(&ptable.lock);
+    return;
+  }
+  else{
+    for(p=ptable.proc; p<&ptable.proc[NPROC]; p++){
+      if(p->pid == pid){
+        if(p->state == SLEEPING){
+          cprintf("%s \t %d \t SLEEPING \t %d \n",p->name,p->pid,p->value);
+        }
+        else if(p->state == RUNNING){
+          cprintf("%s \t %d \t RUNNING \t %d \n",p->name,p->pid,p->value);
+        }
+        else if(p->state == RUNNABLE){
+          cprintf("%s \t %d \t RUNNABLE \t %d \n",p->name,p->pid,p->value);
+        }
+        release(&ptable.lock);
+        return;
+      }
+    }
+  }
+}
+
 
 // Grow current process's memory by n bytes.
 // Return 0 on success, -1 on failure.
