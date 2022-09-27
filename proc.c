@@ -179,6 +179,7 @@ getnice(int pid)
   acquire(&ptable.lock);
   for(p=ptable.proc; p<&ptable.proc[NPROC];p++){
     if(p->pid == pid){
+      cprintf("%d\n",p->value);
       release(&ptable.lock);
       return p->value;
     }
@@ -211,39 +212,33 @@ ps(int pid)
   sti();
 
   acquire(&ptable.lock);
-  cprintf("name \t pid \t state \t priority \n");
+  cprintf("name  \t  pid  \t  state  \t  priority \n");
   if (pid == 0){
     for(p=ptable.proc; p<&ptable.proc[NPROC]; p++){
-      if(p->state == SLEEPING){
+      if(p->state == SLEEPING)
         cprintf("%s \t %d \t SLEEPING \t %d \n",p->name,p->pid,p->value);
-      }
-      else if(p->state == RUNNING){
+      else if(p->state == RUNNING)
         cprintf("%s \t %d \t RUNNING \t %d \n",p->name,p->pid,p->value);
-      }
-      else if(p->state == RUNNABLE){
+      else if(p->state == RUNNABLE)
         cprintf("%s \t %d \t RUNNABLE \t %d \n",p->name,p->pid,p->value);
-      }
     }
-    release(&ptable.lock);
-    return;
   }
   else{
     for(p=ptable.proc; p<&ptable.proc[NPROC]; p++){
+      cprintf("p->pid : %d\n",p->pid);
       if(p->pid == pid){
-        if(p->state == SLEEPING){
-          cprintf("%s \t %d \t SLEEPING \t %d \n",p->name,p->pid,p->value);
-        }
-        else if(p->state == RUNNING){
-          cprintf("%s \t %d \t RUNNING \t %d \n",p->name,p->pid,p->value);
-        }
-        else if(p->state == RUNNABLE){
-          cprintf("%s \t %d \t RUNNABLE \t %d \n",p->name,p->pid,p->value);
-        }
-        release(&ptable.lock);
-        return;
+        if(p->state == SLEEPING)
+          cprintf("%s  \t  %d  \t  SLEEPING  \t  %d  \n",p->name,p->pid,p->value);
+        else if(p->state == RUNNING)
+          cprintf("%s  \t  %d  \t  RUNNING  \t  %d  \n",p->name,p->pid,p->value);
+        else if(p->state == RUNNABLE)
+          cprintf("%s  \t  %d  \t  RUNNABLE  \t  %d  \n",p->name,p->pid,p->value);
+        break;
       }
     }
   }
+  release(&ptable.lock);
+  return;
 }
 
 
