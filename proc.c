@@ -411,14 +411,14 @@ wait(void)
 void
 scheduler(void)
 {
-  struct proc *p, *p_temp;
+  struct proc *p;
   struct cpu *c = mycpu();
   c->proc = 0;
   
   for(;;){
     // Enable interrupts on this processor.
     sti();
-    struct proc *p_higher;
+
     // Loop over process table looking for process to run.
     acquire(&ptable.lock);
     for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
@@ -428,16 +428,6 @@ scheduler(void)
       // Switch to chosen process.  It is the process's job
       // to release ptable.lock and then reacquire it
       // before jumping back to us.
-
-      // applying priority concept
-      p_higher = p;
-      for(p_temp = ptable.proc; p_temp < &ptable.proc[NPROC]; p_temp++){
-        if(p_temp->state != RUNNABLE)
-          continue;
-        if (p_higher->value > p_temp->value)
-          p_higher = p_temp;
-      }
-      p = p_higher;
       c->proc = p;
       switchuvm(p);
       p->state = RUNNING;
