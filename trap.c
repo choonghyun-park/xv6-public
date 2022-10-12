@@ -105,8 +105,12 @@ trap(struct trapframe *tf)
   // If interrupts were on while locks held, would need to check nlock.
   if(myproc() && myproc()->state == RUNNING &&
      tf->trapno == T_IRQ0+IRQ_TIMER) {
-     cprintf("==========  ticks : %d  =========\n",ticks);
-     yield();
+      // cprintf("myproc->num_ticks in trap.c : %d\n",myproc()->num_ticks);
+    //  yield();
+     if (myproc()->vruntime >= myproc()->time_slice){
+        cprintf("yield : vruntime is more than time slice!\n");
+        yield();
+      }
      }
     
 

@@ -26,8 +26,6 @@ float CFS_weights[40] = {88818, 71054, 56843, 45475, 36380, 29104, 23283, 18626,
                          1024, 819, 655, 524, 419, 336, 268, 215, 172, 137,
                           110, 88, 70, 56, 45, 36, 29, 23, 18, 15};
 
-// uint scheduling_latency = 10*tick
-
 
 void
 pinit(void)
@@ -98,7 +96,9 @@ found:
   p->state = EMBRYO;
   p->pid = nextpid++;
   p->value = 20; //Default priority value of process is 20
-
+  p->num_ticks = 0;
+  p->vruntime = (int)(1000 * (1024/CFS_weights[p->value])+0.5);
+  p->time_slice = (int)(10000 * (1024 / CFS_weights[p->value])+0.5);
   release(&ptable.lock);
 
   // Allocate kernel stack.
@@ -421,8 +421,11 @@ void
 scheduler(void)
 {
   struct proc *p;
+  struct proc *shortestVruntimeP;
   struct cpu *c = mycpu();
   c->proc = 0;
+
+  uint initial_ticks;
   
   for(;;){
     // Enable interrupts on this processor.
@@ -434,16 +437,34 @@ scheduler(void)
       if(p->state != RUNNABLE)
         continue;
 
+      shortestVruntimeP = p;
+      // select the minimum vruntime p
+      for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+       if(p->state == RUNNABLE && p->vruntime < shortestVruntimeP->vruntime)
+	   	shortestVruntimeP = p;
+	    }  
+     
       // Switch to chosen process.  It is the process's job
       // to release ptable.lock and then reacquire it
       // before jumping back to us.
+      p = shortestVruntimeP;
+
+
       c->proc = p;
       switchuvm(p);
       p->state = RUNNING;
-
+      initial_ticks = ticks;
       swtch(&(c->scheduler), p->context);
       switchkvm();
 
+      // calculate delta_runtime and num_ticks
+      p->delta_runtime = ticks - initial_ticks + 1;
+      p->num_ticks += p->delta_runtime;
+      // update vruntime
+      p->vruntime += (int)(1000 * p->delta_runtime * (1024 / CFS_weights[p->value])+0.5);
+      cprintf("RUNNING proc : %d \t vruntime : %d \t time_slice : %d \n", c->proc->pid,p->vruntime,p->time_slice);
+      
+      
       // Process is done running for now.
       // It should have changed its p->state before coming back.
       c->proc = 0;
@@ -485,6 +506,10 @@ yield(void)
 {
   acquire(&ptable.lock);  //DOC: yieldlock
   myproc()->state = RUNNABLE;
+  if (myproc()->value > 0) 
+    myproc()->value -= 1;
+  myproc()->vruntime = 1000 * (1024/CFS_weights[myproc()->value]);
+  myproc()->time_slice = 10000 * (1024/CFS_weights[myproc()->value]);
   sched();
   release(&ptable.lock);
 }
