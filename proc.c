@@ -225,7 +225,7 @@ ps(int pid)
   cprintf("name\t\tpid\tstate\t\tpriority\truntime/weight\truntime\t\tvruntime\ttick %d\n",ticks);
   if (pid == 0){
     for(p=ptable.proc; p<&ptable.proc[NPROC]; p++){
-      int rw = (int)(p->actual_runtime/CFS_weights[p->value]);
+      int rw = (int)(p->runtime/CFS_weights[p->value]+0.5);
       if(p->state == SLEEPING)
         cprintf("%s\t\t%d\t%s\t%d\t\t%d\t\t%d\t\t%d\n",p->name,p->pid,"SLEEPING",p->value,rw,p->runtime,p->vruntime);
       else if(p->state == RUNNING)
@@ -236,7 +236,7 @@ ps(int pid)
   }
   else{
     for(p=ptable.proc; p<&ptable.proc[NPROC]; p++){
-      int rw = (int)(p->actual_runtime/CFS_weights[p->value]);
+      int rw = (int)(p->runtime/CFS_weights[p->value]+0.5);
       if(p->pid == pid){
         if(p->state == SLEEPING)
           cprintf("%s\t\t%d\t%s\t%d\t\t%d\t\t%d\t\t%d\n",p->name,p->pid,"SLEEPING",p->value,rw,p->runtime,p->vruntime);
