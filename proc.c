@@ -430,6 +430,8 @@ scheduler(void)
   struct proc *shortestVruntimeP;
   struct cpu *c = mycpu();
   c->proc = 0;
+  int total_weights;
+
   
   for(;;){
     // Enable interrupts on this processor.
@@ -441,12 +443,13 @@ scheduler(void)
         continue;
 
       shortestVruntimeP = p;
-
+      total_weights = 0;
       // select the minimum vruntime p
       for(p1 = ptable.proc; p1 < &ptable.proc[NPROC]; p1++){
        if(p1->state == RUNNABLE && p1->vruntime < shortestVruntimeP->vruntime) {
         // cprintf("RUNNABLE p pid : %d\n",p->pid);        
 	   	  shortestVruntimeP = p1;
+        total_weights += CFS_weights[p1->value];
        }
        
 	    }  
@@ -460,22 +463,12 @@ scheduler(void)
       switchuvm(p);
       p->state = RUNNING;
       p->initial_runtime = p->actual_runtime;
-      // p->actual_runtime = 0;
-
-
+      myproc()->time_slice = 10000 * (CFS_weights[myproc()->value]/total_weights);
+ 
       // go to sched() swtch and do swtch from first line to before swtch 
       swtch(&(c->scheduler), p->context);
       // come back to scheduler after sched
-      // cprintf("pid : %d, p->actual_runtime : %d\n",p->pid,p->actual_runtime);
       switchkvm();
-
-      // calculate delta_runtime and num_ticks
-      p->delta_runtime = p->actual_runtime - p->initial_runtime;
-
-      
-      // update vruntime
-      p->vruntime += (int)(p->delta_runtime * (1024 / CFS_weights[p->value])+0.5);
-      myproc()->time_slice = 10000 * (1024/CFS_weights[myproc()->value]);
 
       // Process is done running for now.
       // It should have changed its p->state before coming back.
@@ -519,7 +512,10 @@ yield(void)
   //yield called
   acquire(&ptable.lock);  //DOC: yieldlock
   myproc()->state = RUNNABLE;
-  myproc()->value -= 1;
+  if (myproc()->value>0)
+    myproc()->value -= 1;
+  myproc()->delta_runtime = myproc()->actual_runtime - myproc()->initial_runtime;
+  myproc()->vruntime += (int)(myproc()->delta_runtime * (1024 / CFS_weights[myproc()->value])+0.5);
   myproc()->initial_runtime = 0;
   myproc()->actual_runtime = 0;
 
