@@ -53,7 +53,10 @@ struct proc {
   uint num_ticks;              // unit : ticks
   uint vruntime;               // unit : mili ticks
   uint time_slice;             // unit : mili ticks
-  uint delta_runtime;          // unit : ticks
+  uint delta_runtime;          // unit : mili ticks
+  uint initial_runtime;        // unit : mili ticks
+  uint actual_runtime;          // unit : mili ticks
+  uint runtime;                 // uint : mili ticks
 };
 
 // Process memory is laid out contiguously, low addresses first:

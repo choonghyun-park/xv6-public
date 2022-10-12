@@ -7,7 +7,7 @@ int main(int argc, char *argv[])
 {
     int num_fork;
     int pid;
-    int a;
+    uint a=0;
 
     if(argc<2)
         num_fork = 1;
@@ -28,11 +28,12 @@ int main(int argc, char *argv[])
         }
         else{
             printf(1,"Child %d created\n",getpid());
-            ps(0);
             for (int k=0; k<1000000000;k++){
                 a++;
             }
+            ps(0);
             break;
+            
         }
     }
 
