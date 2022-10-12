@@ -221,27 +221,30 @@ ps(int pid)
   sti();
 
   acquire(&ptable.lock);
-  cprintf("name  \t pid  \t state  \t priority \n");
+  cprintf("name\t\tpid\tstate\t\tpriority\truntime/weight\truntime\t\tvruntime\ttick %d\n",ticks);
   if (pid == 0){
     for(p=ptable.proc; p<&ptable.proc[NPROC]; p++){
+      int rw = (int)(1000*p->num_ticks/CFS_weights[p->value]);
+      int runtime = 1000*p->num_ticks;
       if(p->state == SLEEPING)
-        cprintf("%s \t %d \t SLEEPING \t %d \n",p->name,p->pid,p->value);
+        cprintf("%s\t\t%d\t%s\t%d\t\t%d\t\t%d\t\t%d\n",p->name,p->pid,"SLEEPING",p->value,rw,runtime,p->vruntime);
       else if(p->state == RUNNING)
-        cprintf("%s \t %d \t RUNNING \t %d \n",p->name,p->pid,p->value);
+        cprintf("%s\t\t%d\t%s\t\t%d\t\t%d\t\t%d\t\t%d\n",p->name,p->pid,"RUNNING",p->value,rw,runtime,p->vruntime);
       else if(p->state == RUNNABLE)
-        cprintf("%s \t %d \t RUNNABLE \t %d \n",p->name,p->pid,p->value);
+        cprintf("%s\t\t%d\t%s\t%d\t\t%d\t\t%d\t\t%d\n",p->name,p->pid,"RUNNABLE",p->value,rw,runtime,p->vruntime);
     }
   }
   else{
     for(p=ptable.proc; p<&ptable.proc[NPROC]; p++){
-      cprintf("p->pid : %d\n",p->pid);
+      int rw = (int)(1000*p->num_ticks/CFS_weights[p->value]);
+      int runtime = 1000*p->num_ticks;
       if(p->pid == pid){
         if(p->state == SLEEPING)
-          cprintf("%s  \t  %d  \t  SLEEPING  \t  %d  \n",p->name,p->pid,p->value);
+          cprintf("%s\t\t%d\t%s\t%d\t\t%d\t\t%d\t\t%d\n",p->name,p->pid,"SLEEPING",p->value,rw,runtime,p->vruntime);
         else if(p->state == RUNNING)
-          cprintf("%s  \t  %d  \t  RUNNING  \t  %d  \n",p->name,p->pid,p->value);
+          cprintf("%s\t\t%d\t%s\t\t%d\t\t%d\t\t%d\t\t%d\n",p->name,p->pid,"RUNNING",p->value,rw,runtime,p->vruntime);
         else if(p->state == RUNNABLE)
-          cprintf("%s  \t  %d  \t  RUNNABLE  \t  %d  \n",p->name,p->pid,p->value);
+          cprintf("%s\t\t%d\t%s\t%d\t\t%d\t\t%d\t\t%d\n",p->name,p->pid,"RUNNABLE",p->value,rw,runtime,p->vruntime);
         break;
       }
     }
@@ -420,7 +423,7 @@ wait(void)
 void
 scheduler(void)
 {
-  struct proc *p;
+  struct proc *p, *p1;
   struct proc *shortestVruntimeP;
   struct cpu *c = mycpu();
   c->proc = 0;
@@ -430,7 +433,6 @@ scheduler(void)
   for(;;){
     // Enable interrupts on this processor.
     sti();
-
     // Loop over process table looking for process to run.
     acquire(&ptable.lock);
     for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
@@ -438,10 +440,14 @@ scheduler(void)
         continue;
 
       shortestVruntimeP = p;
+
       // select the minimum vruntime p
-      for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-       if(p->state == RUNNABLE && p->vruntime < shortestVruntimeP->vruntime)
-	   	shortestVruntimeP = p;
+      for(p1 = ptable.proc; p1 < &ptable.proc[NPROC]; p1++){
+       if(p1->state == RUNNABLE && p1->vruntime < shortestVruntimeP->vruntime) {
+        // cprintf("RUNNABLE p pid : %d\n",p->pid);        
+	   	  shortestVruntimeP = p1;
+       }
+       
 	    }  
      
       // Switch to chosen process.  It is the process's job
@@ -449,12 +455,13 @@ scheduler(void)
       // before jumping back to us.
       p = shortestVruntimeP;
 
-
       c->proc = p;
       switchuvm(p);
       p->state = RUNNING;
       initial_ticks = ticks;
+      // go to sched() swtch and do swtch from first line to before swtch 
       swtch(&(c->scheduler), p->context);
+      // come back to scheduler after sched
       switchkvm();
 
       // calculate delta_runtime and num_ticks
@@ -462,8 +469,7 @@ scheduler(void)
       p->num_ticks += p->delta_runtime;
       // update vruntime
       p->vruntime += (int)(1000 * p->delta_runtime * (1024 / CFS_weights[p->value])+0.5);
-      cprintf("RUNNING proc : %d \t vruntime : %d \t time_slice : %d \n", c->proc->pid,p->vruntime,p->time_slice);
-      
+      // cprintf("RUNNING proc : %d \t vruntime : %d \t time_slice : %d \n", c->proc->pid,p->vruntime,p->time_slice);
       
       // Process is done running for now.
       // It should have changed its p->state before coming back.
@@ -504,12 +510,14 @@ sched(void)
 void
 yield(void)
 {
+  //yield called
   acquire(&ptable.lock);  //DOC: yieldlock
   myproc()->state = RUNNABLE;
   if (myproc()->value > 0) 
     myproc()->value -= 1;
   myproc()->vruntime = 1000 * (1024/CFS_weights[myproc()->value]);
   myproc()->time_slice = 10000 * (1024/CFS_weights[myproc()->value]);
+  //go sched first line -> sched swtch-> scheduler swtch -> next for loof swtch -> sched swtch -> back to yield here and release -> sched 1 and recycle  
   sched();
   release(&ptable.lock);
 }
