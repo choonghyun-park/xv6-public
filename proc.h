@@ -50,7 +50,6 @@ struct proc {
   struct inode *cwd;           // Current directory
   char name[16];               // Process name (debugging)
   int value;                   // Priority value
-  uint num_ticks;              // unit : ticks
   uint vruntime;               // unit : mili ticks
   uint time_slice;             // unit : mili ticks
   uint delta_runtime;          // unit : mili ticks

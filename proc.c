@@ -96,11 +96,10 @@ found:
   p->state = EMBRYO;
   p->pid = nextpid++;
   p->value = 20; //Default priority value of process is 20
-  p->num_ticks = 0;
   p->vruntime = 0;
   p->runtime = 0;
   // p->vruntime = (int)(1000 * (1024/CFS_weights[p->value])+0.5);
-  p->time_slice = (int)(10000 * (1024 / CFS_weights[p->value])+0.5);
+  // p->time_slice = (int)(10000 * (1024 / CFS_weights[p->value])+0.5);
   release(&ptable.lock);
 
   // Allocate kernel stack.
