@@ -21,10 +21,10 @@ extern void trapret(void);
 static void wakeup1(void *chan);
 
 
-float CFS_weights[40] = {88818, 71054, 56843, 45475, 36380, 29104, 23283, 18626, 14901, 11921,
-                         9537, 7629, 6104, 4883, 3906, 3125, 2500, 2000, 1600, 1280, 
-                         1024, 819, 655, 524, 419, 336, 268, 215, 172, 137,
-                          110, 88, 70, 56, 45, 36, 29, 23, 18, 15};
+float CFS_weights[40] = {88716, 71755, 56483, 46273, 36291, 29154, 23254, 18705, 14949, 11916,
+                         9548, 7620, 6100, 4904, 3906, 3121, 2501, 1991, 1586, 1277, 
+                         1024, 820, 655, 526, 423, 335, 272, 215, 172, 137,
+                          110, 87, 70, 56, 45, 36, 29, 23, 18, 15};
 
 
 void
@@ -301,6 +301,10 @@ fork(void)
   np->parent = curproc;
   *np->tf = *curproc->tf;
 
+  np->num_ticks = curproc->num_ticks; 
+  np->vruntime = curproc->vruntime;
+  np->time_slice = curproc->time_slice;
+
   // Clear %eax so that fork returns 0 in the child.
   np->tf->eax = 0;
 
@@ -316,7 +320,7 @@ fork(void)
   acquire(&ptable.lock);
 
   np->state = RUNNABLE;
-
+ 
   release(&ptable.lock);
 
   return pid;
@@ -467,10 +471,15 @@ scheduler(void)
       // calculate delta_runtime and num_ticks
       p->delta_runtime = ticks - initial_ticks + 1;
       p->num_ticks += p->delta_runtime;
+
+      myproc()->value -= 1;
       // update vruntime
       p->vruntime += (int)(1000 * p->delta_runtime * (1024 / CFS_weights[p->value])+0.5);
       // cprintf("RUNNING proc : %d \t vruntime : %d \t time_slice : %d \n", c->proc->pid,p->vruntime,p->time_slice);
       
+      // myproc()->vruntime = 1000 * ticks * (1024/CFS_weights[myproc()->value]);
+      myproc()->time_slice = 10000 * (1024/CFS_weights[myproc()->value]);
+
       // Process is done running for now.
       // It should have changed its p->state before coming back.
       c->proc = 0;
@@ -513,10 +522,16 @@ yield(void)
   //yield called
   acquire(&ptable.lock);  //DOC: yieldlock
   myproc()->state = RUNNABLE;
-  if (myproc()->value > 0) 
-    myproc()->value -= 1;
-  myproc()->vruntime = 1000 * (1024/CFS_weights[myproc()->value]);
-  myproc()->time_slice = 10000 * (1024/CFS_weights[myproc()->value]);
+  // if (myproc()->value > 0) 
+    // myproc()->value -= 1;
+
+  // if (myproc()->vruntime >= myproc()->time_slice){
+  //       // cprintf("yield : vruntime is more than time slice!\n");
+  //       yield();
+  //     }
+  // update vruntime
+  // myproc()->vruntime = 1000 * (1024/CFS_weights[myproc()->value]);
+  // myproc()->time_slice = 10000 * (1024/CFS_weights[myproc()->value]);
   //go sched first line -> sched swtch-> scheduler swtch -> next for loof swtch -> sched swtch -> back to yield here and release -> sched 1 and recycle  
   sched();
   release(&ptable.lock);

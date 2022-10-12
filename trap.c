@@ -107,6 +107,7 @@ trap(struct trapframe *tf)
      tf->trapno == T_IRQ0+IRQ_TIMER) {
       // cprintf("myproc->num_ticks in trap.c : %d\n",myproc()->num_ticks);
     //  yield();
+
      if (myproc()->vruntime >= myproc()->time_slice){
         // cprintf("yield : vruntime is more than time slice!\n");
         yield();
