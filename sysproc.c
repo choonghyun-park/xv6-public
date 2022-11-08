@@ -85,6 +85,49 @@ sys_ps(void)
   return 0;
 }
 
+// Project3 sys_functions
+int
+sys_mmap(void)
+{
+  uint addr;
+  int length, prot, flags, fd, offset;
+
+  if (argint(0, &addr) < 0)
+    return -1;
+  if (argint(0, &length) < 0)
+    return -1;
+  if (argint(0, &prot) < 0)
+    return -1;
+  if (argint(0, &flags) < 0)
+    return -1;
+  if (argint(0, &fd) < 0)
+    return -1;
+  if (argint(0, &offset) < 0)
+    return -1;
+
+  mmap(addr,length, prot, flags, fd, offset);
+  return 0;
+}
+
+int
+sys_munmap(void)
+{
+  uint addr;
+
+  if (argint(0, &addr) < 0)
+    return -1;
+
+  munmap(addr);
+  return 0;
+}
+
+int
+sys_freemem(void)
+{
+  freemem();
+  return 0;
+}
+
 int
 sys_sbrk(void)
 {

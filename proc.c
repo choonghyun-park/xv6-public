@@ -252,6 +252,30 @@ ps(int pid)
   return;
 }
 
+// Project 3 functions that perform real action
+uint 
+mmap(uint addr, int length, int prot, int flags, int fd, int offset)
+{
+  return 0;
+}
+
+int
+munmap(uint addr)
+{
+  int ret;
+  ret = 1; // succeed
+  ret = -1; // fail
+  return ret;
+}
+
+int
+freemem(void)
+{
+  int page_num; // current number of free memory pages
+  page_num = 3; // for example 
+  return page_num;
+}
+
 
 // Grow current process's memory by n bytes.
 // Return 0 on success, -1 on failure.
