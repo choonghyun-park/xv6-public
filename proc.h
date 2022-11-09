@@ -58,6 +58,15 @@ struct proc {
   uint runtime;                 // uint : mili ticks
 };
 
+struct mmap_area {
+  struct file *f;
+  uint addr;
+  int length;
+  int offset;
+  int prot;
+  int flags;
+  struct proc *p;
+}
 // Process memory is laid out contiguously, low addresses first:
 //   text
 //   original data and bss
