@@ -124,8 +124,8 @@ int             getpname(int);
 int             getnice(int);
 int             setnice(int,int);
 void            ps(int);
-uint            mmap(uint,int,int,int,int,int);
-int             munmap(uint);
+uint            mmap(int,int,int,int,int,int);
+int             munmap(int);
 int             freemem(void);
 
 // swtch.S

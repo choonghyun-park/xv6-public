@@ -186,6 +186,9 @@ UPROGS=\
 	_setnice\
 	_ps\
 	_testcfs\
+	_mmap\
+	_munmap\
+	_freemem\
 
 fs.img: mkfs README $(UPROGS)
 	./mkfs fs.img README $(UPROGS)

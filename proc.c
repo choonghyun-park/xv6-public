@@ -252,16 +252,102 @@ ps(int pid)
   return;
 }
 
+
+//mmap additional functions
+void copy_mmap(struct mmap_area *mmap1, struct mmap_area *mmap2) {
+  mmap1->addr = mmap2->addr;
+  mmap1->length = mmap2->length;
+  mmap1->flags = mmap2->flags;
+  mmap1->prot = mmap2->prot;
+  mmap1->fd = mmap2->fd;
+  mmap1->offset = mmap2->offset;
+}
+
+int init_mmap(struct proc *p, int length, int i, uint mmapaddr) {
+  int j=p->mmap_index;
+  while (j>i+1) {
+    copy_mmap(&p->mmaps[j], &p->mmaps[j-1]);
+    j--;
+  }
+  p->mmaps[i+1].addr = mmapaddr;
+  p->mmaps[i+1].length = length;
+  return i+1;
+}
+
+int make_new_mmap(struct proc *p, uint addr, int length) {
+  uint mmap_addr = PGROUNDUP(addr);
+  if (mmap_addr > PGROUNDUP(p->mmaps[p->mmap_index - 1].addr + p->mmaps[p->mmap_index - 1].length)) {
+    return init_mmap(p, length, p->mmap_index-1, mmap_addr);
+  }
+  int i = 0;
+  for (; i<p->mmap_index - 1; i++) {
+    if (p->mmaps[i].addr >= mmap_addr) {
+      return -1;
+    }
+    int start_addr = PGROUNDUP(p->mmaps[i].addr + p->mmaps[i].length);
+    int end_addr = PGROUNDUP(p->mmaps[i+1].addr);
+    if (mmap_addr > start_addr && end_addr > mmap_addr + length){
+      return init_mmap(p,length,p->mmap_index-1,mmap_addr);
+    }
+  }
+  return -1;
+}
+
 // Project 3 functions that perform real action
 uint 
-mmap(uint addr, int length, int prot, int flags, int fd, int offset)
+mmap(int addr, int length, int prot, int flags, int fd, int offset)
 {
-  return 0;
+  //Invalid input
+  if (length <= 0 || offset < 0) {
+    return -1;
+  }
+  struct proc *p = myproc();
+  // over the max number of mmap array
+  if (p->mmap_index == 64) {
+    return -1;
+  }
+  // 3 cases
+  int i = -1;
+  if (flags & MAP_POPULATE) {
+    // uint rounded_addr = PGROUNDUP(PGROUNDUP(addr) + length);
+    i = make_new_mmap(p, addr, length);
+    // mmap is not possible
+    if (i==-1) {
+      return -1;
+    }
+
+    if (flags & MAP_ANONYMOUS) { //populate with anonymous file
+      //refresh the memory to 0
+    }
+    else { // populate
+      //read from the file
+    }
+  }
+  else { // No populate
+    // uint rounded_addr = PGROUNDUP(PGROUNDUP(addr) + length);
+    i = make_new_mmap(p, addr, length);
+    // mmap is not possible
+    if (i==-1) {
+      return -1;
+    }
+  }
+  p->mmaps[i].flags = flags;
+  p->mmaps[i].prot = prot;
+  p->mmaps[i].offset = offset;
+  p->mmaps[i].fd = (void *)fd;
+  p->mmap_index += 1;
+  
+  return p->mmaps[i].addr;
 }
 
 int
-munmap(uint addr)
+munmap(int addr)
 {
+  // int mmap_index = p->mmap_index;
+  // while (mmap_index > 0) {
+    // if (p->mmaps[])
+  // }
+
   int ret;
   ret = 1; // succeed
   ret = -1; // fail
@@ -275,6 +361,9 @@ freemem(void)
   page_num = 3; // for example 
   return page_num;
 }
+
+
+
 
 
 // Grow current process's memory by n bytes.
@@ -423,6 +512,7 @@ wait(void)
         p->killed = 0;
         p->state = UNUSED;
         release(&ptable.lock);
+        p->mmap_index = 0;
         return pid;
       }
     }

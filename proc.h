@@ -34,6 +34,16 @@ struct context {
 
 enum procstate { UNUSED, EMBRYO, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };
 
+struct mmap_area {
+  struct file *fd;
+  uint addr;
+  int length;
+  int offset;
+  int prot;
+  int flags;
+  struct proc *p;
+};
+
 // Per-process state
 struct proc {
   uint sz;                     // Size of process memory (bytes)
@@ -56,17 +66,10 @@ struct proc {
   uint initial_runtime;        // unit : mili ticks
   uint actual_runtime;          // unit : mili ticks
   uint runtime;                 // uint : mili ticks
+  struct mmap_area mmaps[64];    // mmap array for process
+  int mmap_index;                // last mmap index
 };
 
-struct mmap_area {
-  struct file *f;
-  uint addr;
-  int length;
-  int offset;
-  int prot;
-  int flags;
-  struct proc *p;
-}
 // Process memory is laid out contiguously, low addresses first:
 //   text
 //   original data and bss
